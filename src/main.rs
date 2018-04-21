@@ -1,5 +1,7 @@
 use std::fs::File;
 use std::io::{Write, Read};
+use std::env;
+use std::fs;
 
 const LUMA_WIDTH: usize=128;
 const LUMA_HEIGHT: usize=96;
@@ -50,18 +52,26 @@ pub fn macroblock(i: usize, j: usize, mut f: &File, frame: &Frame) {
 /* Write out PPS, SPS, and loop over input, writing out I slices */
 pub fn main() {
 
-    let mut buffer = [0; 128];
-    let filesize = 9216000;
-    let mut bytes_read = 0;
-    let mut readf = File::open("test.yuv").expect("unable to open file");
+    let args: Vec<String> = env::args().collect();
 
-    let mut f = File::create("foo.264").expect("unable to create file");
+    let input_filename = &args[1];
+    let output_filename = &args[2];
+    let metadata = fs::metadata(input_filename).expect(&format!("couldn't get metadata for {}", &input_filename));
+    let filesize = metadata.len() as usize;
+    println!("the filesize of {} is {}", &input_filename, &filesize);
+
+    let mut buffer: [u8; LUMA_WIDTH];
+    let mut bytes_read: usize = 0;
+    // input_filename might get stolen here, but we don't need to reference it after this, right?
+    let mut readf = File::open(input_filename).expect("unable to open file");
+
+    let mut f = File::create(&output_filename).expect("unable to create file");
 
     f.write_all(&SPS).unwrap();
     f.write_all(&PPS).unwrap();
 
     while bytes_read < filesize {
-        let mut y = [[0; 128]; 96];
+        let mut y = [[0; LUMA_WIDTH]; LUMA_HEIGHT];
         // ok, so now we've got some bytes, let's fill frame.y
         for i in 0..96 {
             // go through every byte in the buffer
@@ -71,9 +81,9 @@ pub fn main() {
             y[i] = buffer;
         }
 
-        let mut cb = [[0; CHROMA_WIDTH]; 96 / 2];
-        let mut buffer = [0; CHROMA_WIDTH];
-        for i in 0..(96 / 2) {
+        let mut cb = [[0; CHROMA_WIDTH]; CHROMA_HEIGHT];
+        let mut buffer: [u8; CHROMA_WIDTH];
+        for i in 0..(CHROMA_HEIGHT) {
             // go through every byte in the buffer
             // assign a byte to frame.y[i][j]
             buffer = [0;128/2];
@@ -81,8 +91,8 @@ pub fn main() {
             cb[i] = buffer;
         }
 
-        let mut cr = [[0; CHROMA_WIDTH]; 96 / 2];
-        for i in 0..(96 / 2) {
+        let mut cr = [[0; CHROMA_WIDTH]; CHROMA_HEIGHT];
+        for i in 0..(CHROMA_HEIGHT) {
             // go through every byte in the buffer
             // assign a byte to frame.y[i][j]
             buffer = [0;128/2];
