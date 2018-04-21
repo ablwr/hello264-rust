@@ -10,4 +10,4 @@ Make another raw data stream to test:
 
 Mux data stream into video wrapper:
 
-`ffmpeg -f h264 -i test.264 -vcodec copy test.mkv`
+`ffmpeg -f h264 -i foo.264 -vcodec copy test.mkv`

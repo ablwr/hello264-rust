@@ -1,10 +1,10 @@
 use std::fs::File;
 use std::io::{Write, Read};
 
-const luma_width: usize=128;
-const luma_height: usize=96;
-const chroma_width: usize=luma_width / 2;
-const chroma_height: usize=luma_height / 2;
+const LUMA_WIDTH: usize=128;
+const LUMA_HEIGHT: usize=96;
+const CHROMA_WIDTH: usize=LUMA_WIDTH / 2;
+const CHROMA_HEIGHT: usize=LUMA_HEIGHT / 2;
 
 // H.264 bitstreams
 static SPS: [u8; 11] = [ 0x00, 0x00, 0x00, 0x01, 0x67, 0x42, 0x00, 0x0a, 0xf8, 0x41, 0xa2 ];
@@ -13,9 +13,9 @@ static SLICE_HEADER: [u8; 9] = [ 0x00, 0x00, 0x00, 0x01, 0x05, 0x88, 0x84, 0x21,
 static MACROBLOCK_HEADER: [u8; 2] = [ 0x0d, 0x00 ];
 
 pub struct Frame {
-   y: [[u8; 128]; 96],
-   cb: [[u8; 128 / 2]; 96 / 2],
-   cr: [[u8; 128 / 2]; 96 / 2],
+   y: [[u8; LUMA_WIDTH]; LUMA_HEIGHT],
+   cb: [[u8; CHROMA_WIDTH]; CHROMA_HEIGHT],
+   cr: [[u8; CHROMA_WIDTH]; CHROMA_HEIGHT],
 }
 
 // Write a macroblock's worth of YUV data in I_PCM mode
@@ -71,8 +71,8 @@ pub fn main() {
             y[i] = buffer;
         }
 
-        let mut cb = [[0; 128 / 2]; 96 / 2];
-        let mut buffer = [0; 128 / 2];
+        let mut cb = [[0; CHROMA_WIDTH]; 96 / 2];
+        let mut buffer = [0; CHROMA_WIDTH];
         for i in 0..(96 / 2) {
             // go through every byte in the buffer
             // assign a byte to frame.y[i][j]
@@ -81,7 +81,7 @@ pub fn main() {
             cb[i] = buffer;
         }
 
-        let mut cr = [[0; 128 / 2]; 96 / 2];
+        let mut cr = [[0; CHROMA_WIDTH]; 96 / 2];
         for i in 0..(96 / 2) {
             // go through every byte in the buffer
             // assign a byte to frame.y[i][j]
@@ -94,14 +94,13 @@ pub fn main() {
 
         f.write_all(&SLICE_HEADER).unwrap();
 
-        for i in 0..(luma_height/16) {
-            for j in 0..(luma_width/16) {
+        for i in 0..(LUMA_HEIGHT/16) {
+            for j in 0..(LUMA_WIDTH/16) {
                 macroblock(i, j, &f, &frame);
             }
         }
+        
+        // slice stop bit 
+        f.write_all(&[0x80]).unwrap();
     }
-
-    // slice stop bit 
-    f.write_all(&[0x80]).unwrap();
-
 }
